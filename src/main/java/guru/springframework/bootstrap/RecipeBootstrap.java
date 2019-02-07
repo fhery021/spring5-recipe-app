@@ -4,9 +4,11 @@ import guru.springframework.domain.*;
 import guru.springframework.repositories.CategoryRepository;
 import guru.springframework.repositories.RecipeRepository;
 import guru.springframework.repositories.UnitOfMeasureRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import java.util.Optional;
 /**
  * Created by jt on 6/13/17.
  */
+@Slf4j
 @Component
 public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEvent> {
 
@@ -24,12 +27,14 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
     private final UnitOfMeasureRepository unitOfMeasureRepository;
 
     public RecipeBootstrap(CategoryRepository categoryRepository, RecipeRepository recipeRepository, UnitOfMeasureRepository unitOfMeasureRepository) {
+        log.debug("autowiring repositories");
         this.categoryRepository = categoryRepository;
         this.recipeRepository = recipeRepository;
         this.unitOfMeasureRepository = unitOfMeasureRepository;
     }
 
     @Override
+    @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
         recipeRepository.saveAll(getRecipes());
     }
@@ -39,6 +44,7 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
         List<Recipe> recipes = new ArrayList<>(2);
 
         //get UOMs
+        log.debug("loading unit of measurements");
         Optional<UnitOfMeasure> eachUomOptional = unitOfMeasureRepository.findByDescription("Each");
 
         if(!eachUomOptional.isPresent()){
@@ -83,6 +89,10 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
         UnitOfMeasure pintUom = pintUomOptional.get();
         UnitOfMeasure cupsUom = cupsUomOptional.get();
 
+        log.debug("loading unit of measurements DONE");
+
+        log.debug("loading Categories.");
+
         //get Categories
         Optional<Category> americanCategoryOptional = categoryRepository.findByDescription("American");
 
@@ -98,6 +108,9 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
 
         Category americanCategory = americanCategoryOptional.get();
         Category mexicanCategory = mexicanCategoryOptional.get();
+        log.debug("loading Categories DONE");
+
+        log.debug("setting up Guac recipe");
 
         //Yummy Guac
         Recipe guacRecipe = new Recipe();
@@ -143,6 +156,9 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
         //add to return list
         recipes.add(guacRecipe);
 
+        log.debug("setting up Guac recipe DONE");
+
+        log.debug("setting up Taco recipe");
         //Yummy Tacos
         Recipe tacosRecipe = new Recipe();
         tacosRecipe.setDescription("Spicy Grilled Chicken Taco");
@@ -199,6 +215,7 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
         tacosRecipe.getCategories().add(mexicanCategory);
 
         recipes.add(tacosRecipe);
+        log.debug("setting up Taco recipe DONE");
         return recipes;
     }
 }
