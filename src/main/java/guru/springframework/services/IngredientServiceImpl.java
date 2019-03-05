@@ -46,16 +46,18 @@ public class IngredientServiceImpl implements IngredientService {
 
         Recipe recipe = recipeOptional.get();
 
-        Optional<IngredientCommand> ingredientCommandOptional = recipe.getIngredients().stream()
+        IngredientCommand ingredientCommand = recipe.getIngredients().stream()
                 .filter(ingredient -> ingredient.getId().equals(ingredientId))
-                .map( ingredient -> ingredientToIngredientCommand.convert(ingredient)).findFirst();
+                .map( ingredient -> ingredientToIngredientCommand.convert(ingredient))
+                .findFirst()
+                .orElse(null);
 
-        if(!ingredientCommandOptional.isPresent()){
+        if(ingredientCommand == null){
             //todo impl error handling
             log.error("Ingredient id not found: " + ingredientId);
         }
 
-        return ingredientCommandOptional.get();
+        return ingredientCommand;
     }
 
     @Override
@@ -111,5 +113,27 @@ public class IngredientServiceImpl implements IngredientService {
             return ingredientToIngredientCommand.convert(savedIngredientOptional.get());
         }
 
+    }
+
+    @Override
+    public void deleteIngredientCommand(Long recipeId, Long ingredientId) {
+        Optional<Recipe> recipeOptional = recipeRepository.findById(recipeId);
+
+        Recipe recipe= recipeOptional
+                .orElseThrow(() -> new RuntimeException("Recipe not found with id: " + recipeId));
+
+        log.debug("found recipe with id: " + recipeId);
+
+        Ingredient ingredient = recipe.getIngredients().stream()
+                .filter(ingr -> ingr.getId().equals(ingredientId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Ingredient not found with id: " + ingredientId));
+
+        log.debug("Deleting ingredient with id: " + ingredientId);
+
+        ingredient.setRecipe(null);
+        recipe.getIngredients().remove(ingredient);
+
+        recipeRepository.save(recipe);
     }
 }
